@@ -2,6 +2,7 @@ import { Negotiation } from "../models/negotiation.js";
 import { Negotiations } from "../models/negotiations.js";
 import { NegotitationsView } from "../views/negotiations-view.js";
 import { MessageView } from "../views/message-view.js";
+import { daysOfTheWeek } from "../enums/days-of-the-week.js";
 
 export class NegotiationController {
   private inputDate: HTMLInputElement;
@@ -18,15 +19,25 @@ export class NegotiationController {
     this.negotiationsView.update(this.negotiations);
   }
 
-  add(): void {
-    const negotiation = this.createNegotiation();
-    this.negotiations.add(negotiation);
-    this.negotiationsView.update(this.negotiations);
-    this.messageView.update("Negociação adicionada com sucesso");
-    this.cleanForm();
+  private workingDay(date: Date) {
+    return (
+      date.getDay() > daysOfTheWeek.SUNDAY &&
+      date.getDay() < daysOfTheWeek.SATURDAY
+    );
   }
 
-  createNegotiation(): Negotiation {
+  public add(): void {
+    const negotiation = this.createNegotiation();
+    if (!this.workingDay(negotiation.date)) {
+      this.messageView.update("Apenas negociações em dias úteis são aceitas");
+      return;
+    }
+    this.negotiations.add(negotiation);
+    this.cleanForm();
+    this.updateView();
+  }
+
+  private createNegotiation(): Negotiation {
     const regex = /-/g;
     const date = new Date(this.inputDate.value.replace(regex, ","));
     const amount = parseInt(this.inputAmount.value);
@@ -34,10 +45,15 @@ export class NegotiationController {
     return new Negotiation(date, amount, value);
   }
 
-  cleanForm(): void {
+  private cleanForm(): void {
     this.inputDate.value = "";
     this.inputAmount.value = "";
     this.inputValue.value = "";
     this.inputDate.focus();
+  }
+
+  private updateView(): void {
+    this.negotiationsView.update(this.negotiations);
+    this.messageView.update("Negociação adicionada com sucesso");
   }
 }
